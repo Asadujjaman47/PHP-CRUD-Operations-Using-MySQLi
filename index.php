@@ -1,7 +1,8 @@
 <?php
-// INSERT INTO `notes` (`sno`, `title`, `description`, `tstamp`) VALUES (NULL, 'Buy Books', 'Buy books from store', CURRENT_TIMESTAMP);
 
 $insert = false;
+$update = false;
+$delete = false;
 
 // Connecting to the Database
 $servername = "localhost";
@@ -19,26 +20,54 @@ if(!$conn){
 // echo "Connection was successfull <br>";
 
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-  $title = $_POST["title"];
-  $description = $_POST["description"];
-
-  // Sql query to be executed
-  $sql = "INSERT INTO `notes` (`title`, `description`) VALUES ('$title', '$description ')"; 
-  $result = mysqli_query($conn, $sql);    // execute
-  
-  
-  // Add a new trip to the Trip table in the database
-  if($result){
-      // echo "The record has been inserted successfully!<br>";
-      $insert = true;
-  }
-  else{
-      echo "The record was not inserted successfully because of this error ---> ". mysqli_error($conn);
-  }
-
+// DELETE
+if(isset($_GET['delete'])){
+  $sno = $_GET['delete'];
+  $delete = true;
+  $sql = "DELETE FROM `notes` WHERE `sno` = $sno";
+  $result = mysqli_query($conn, $sql);
 }
-      
+
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST'){
+  // UPDATE
+  if(isset($_POST['snoEdit'])){
+    // Update the record
+    $sno = $_POST['snoEdit'];
+    $title = $_POST["titleEdit"];
+    $description = $_POST["descriptionEdit"];
+  
+    // Sql query to be executed
+    $sql = "UPDATE `notes` SET `title` = '$title' , `description` = '$description' WHERE `notes`.`sno` = $sno"; 
+    $result = mysqli_query($conn, $sql);    // execute
+
+    if($result){
+      $update = true;
+    }
+    else{
+        echo "We could not updat the record successfully!";
+    }
+  }
+  // INSERT
+  else{
+    $title = $_POST["title"];
+    $description = $_POST["description"];
+  
+    // Sql query to be executed
+    $sql = "INSERT INTO `notes` (`title`, `description`) VALUES ('$title', '$description ')"; 
+    $result = mysqli_query($conn, $sql);    // execute
+    
+    
+    // Add a new trip to the Trip table in the database
+    if($result){
+        // echo "The record has been inserted successfully!<br>";
+        $insert = true;
+    }
+    else{
+        echo "The record was not inserted successfully because of this error ---> ". mysqli_error($conn);
+    }
+  }
+}    
 ?>
 
 <!doctype html>
@@ -51,11 +80,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
 
-    <title>iNotes - Notes taking made easy</title>
+    <!-- for style table -->
+    <link rel="stylesheet" href="//cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
+    
+    <title>iNotes - Notes taking made easy</title>    
   </head>
   <body>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModal" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editModal">Edit this Note</h5>
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form action="/curd/index.php" method="post">
+              <input type="hidden" name="snoEdit" id="snoEdit">
+              <div class="form-group">
+                <label for="title">Note Title:</label>
+                <input type="text" class="form-control" id="titleEdit" name="titleEdit" aria-describedby="emailHelp">
+              </div>
+              
+              <div class="form-group">
+                <label for="desc">Note Description:</label>
+                <textarea class="form-control" id="descriptionEdit" name="descriptionEdit" rows="3"></textarea>
+              </div>
+            
+              </div>
+              <div class="modal-footer d-block mr-auto">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                <button type="submit" class="btn btn-primary">Save changes</button>
+              </div>
+            </form>
+        </div>
+      </div>
+    </div>
+
+
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <a class="navbar-brand" href="#">iNotes</a>
+        <a class="navbar-brand" href="#"><img src="/curd/logo.png" height="28px" alt=""></a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
@@ -63,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav mr-auto">
             <li class="nav-item active">
-              <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+              <a class="nav-link" href="/curd/">Home <span class="sr-only">(current)</span></a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="#">About</a>
@@ -92,8 +159,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
       }
     ?>
 
+    <?php
+      if($delete){
+        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>
+        <strong>Success!</strong> Your note has been deleted successfully.
+        <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+          <span aria-hidden='true'>&times;</span>
+        </button>
+      </div>";
+      }
+    ?>
+
+    <?php
+      if($update){
+        echo "<div class='alert alert-success alert-dismissible fade show' role='alert'>
+        <strong>Success!</strong> Your note has been updated successfully.
+        <button type='button' class='close' data-dismiss='alert' aria-label='Close'>
+          <span aria-hidden='true'>&times;</span>
+        </button>
+      </div>";
+      }
+    ?>
+
     <div class="container my-4">
-      <h2>Add a Note</h2>
+      <h2>Add a Note to iNotes</h2>
       <form action="/curd/index.php" method="post">
         <div class="form-group">
           <label for="title">Note Title:</label>
@@ -109,9 +198,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
       </form>
     </div>
 
-    <div class="container">
 
-      <table class="table">
+    <div class="container my-4">
+
+      <table class="table" id="myTable">
         <thead>
           <tr>
             <th scope="col">S.No</th>
@@ -124,29 +214,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
           <?php
           $sql = "SELECT * FROM `notes`";
           $result = mysqli_query($conn, $sql);
+          $sno = 0;
           while($row = mysqli_fetch_assoc($result)){
+            $sno = $sno+1;
             echo "<tr>
-            <th scope='row'>" . $row['sno'] . "</th>
+            <th scope='row'>" . $sno . "</th>
             <td>" . $row['title'] . "</td>
             <td>" . $row['description'] . "</td>
-            <td>Actions</td>
+            <td><button class='edit btn btn-sm btn-primary' id=".$row['sno'].">Edit</button> <button class='delete btn btn-sm btn-primary' id=d".$row['sno'].">Delete</button></td>
           </tr>";
           }
-          
           ?>
+
         </tbody>
       </table>
-
-
+    
     </div>
 
-
-
-
-
-
-
-
+    <hr>
 
 
 
@@ -163,5 +248,59 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST'){
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
     -->
+
+
+    <script src="//cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
+
+
+    <script>
+      $(document).ready( function () {
+        $('#myTable').DataTable();
+      } );
+    </script>
+
+
+    <script>
+      edits = document.getElementsByClassName('edit');
+      Array.from(edits).forEach((element) => {
+        element.addEventListener("click", (e) =>{
+          console.log("edit", ); 
+
+          tr = e.target.parentNode.parentNode;
+          title = tr.getElementsByTagName("td")[0].innerText;
+          description = tr.getElementsByTagName("td")[1].innerText;
+
+          console.log(title, description);
+
+          titleEdit.value = title;
+          descriptionEdit.value = description;
+          snoEdit.value = e.target.id;
+          console.log(e.target.id);
+          $('#editModal').modal('toggle');
+
+        })
+      })
+
+
+      deletes = document.getElementsByClassName('delete');
+      Array.from(deletes).forEach((element) => {
+        element.addEventListener("click", (e) =>{
+          console.log("edit", ); 
+
+          sno = e.target.id.substr(1,);
+          
+          if(confirm("Are you sure you want to delete ths note!")){
+            console.log("yes")
+            window.location = `/curd/index.php?delete=${sno}`;
+            // TODO: Create a form and use post request to submit a form
+          }
+          else{
+            console.log("no");
+          }
+
+        })
+      })
+    </script>
+
   </body>
 </html>
